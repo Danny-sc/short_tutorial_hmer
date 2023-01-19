@@ -9,5 +9,5 @@ For more detailed resources on the calibration of deterministic models, please t
 
 -[Tutorial 1](https://danny-sc.github.io/Tutorial_1/), which introduces the history matching with emulation framework with a one-dimensional example,
 
--[Deterministic Workshop](https://danny-sc.github.io/Tutorial_2/), which offers a more in-depth introduction to the functionality of the hmer package and shows how to use your judgement to customise the process.
+-[Deterministic Workshop](https://danny-sc.github.io/Tutorial_1/), which offers a more in-depth introduction to the functionality of the hmer package and shows how to use your judgement to customise the process.
 
