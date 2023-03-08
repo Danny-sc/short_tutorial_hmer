@@ -61,6 +61,15 @@ get_results <- function(params, times, outputs) {
   shaped <- reshape2::melt(actual_res[,outputs])
   return(setNames(shaped$value, paste0(shaped$Var2, actual_res[,'time'], sep = "")))
 }
+space_filling_design <- function(num_points, num_params, ranges){
+initial_LHS_training <- maximinLHS(num_points/2, num_params)
+initial_LHS_validation <- maximinLHS(num_points/2, num_params)
+initial_LHS <- rbind(initial_LHS_training, initial_LHS_validation)
+initial_points <- setNames(data.frame(t(apply(initial_LHS, 1, 
+                  function(x) x*unlist(lapply(ranges, function(x) x[2]-x[1])) + 
+                  unlist(lapply(ranges, function(x) x[1]))))), names(ranges))
+return(initial_points)
+}
 ```
 
 # Objectives
@@ -114,6 +123,16 @@ get_results <- function(params, times, outputs) {
   shaped <- reshape2::melt(actual_res[,outputs])
   return(setNames(shaped$value, paste0(shaped$Var2, actual_res[,'time'], sep = "")))
 }
+# `space_filling_design` generates a space filling design of parameter sets
+space_filling_design <- function(num_points, num_params, ranges){
+initial_LHS_training <- maximinLHS(num_points/2, num_params)
+initial_LHS_validation <- maximinLHS(num_points/2, num_params)
+initial_LHS <- rbind(initial_LHS_training, initial_LHS_validation)
+initial_points <- setNames(data.frame(t(apply(initial_LHS, 1, 
+                  function(x) x*unlist(lapply(ranges, function(x) x[2]-x[1])) + 
+                  unlist(lapply(ranges, function(x) x[1]))))), names(ranges))
+return(initial_points)
+}
 ``
 
 ```
@@ -140,7 +159,24 @@ A long established method for handling computationally expensive models is to fi
 
 The model is run at a manageable number of parameter sets to provide training data for the emulator. The emulator is then built and can be used to obtain an expected value of the model output at any parameter set $x$, along with an estimate of the uncertainty in the approximation. 
 
-Emulators have two useful properties. First, they are **computationally efficient** - typically several orders of magnitude faster than the computer models they approximate. Second, they allow for the uncertainty in their approximations to be taken into account. These two properties mean that emulators can be used to make inferences as a surrogate for the model itself. In particular, when going through the history matching process, it is possible to evaluate the implausibility measure at any given parameter set by comparing the observed data to the emulator output, rather than the model output. This greatly speeds up the process and allows for a comprehensive exploration of the input space.
+Emulators have two useful properties. First, they are **computationally efficient** - typically several orders of magnitude faster than the computer models they approximate. Second, they allow for the uncertainty in their approximations to be taken into account. These two properties mean that emulators can be used to make inferences as a surrogate for the model itself. In particular, it is possible to evaluate the implausibility measure at any given parameter set by comparing the observed data to the emulator output, rather than the model output. This greatly speeds up the process and allows for a comprehensive exploration of the input space.
+
+The general structure of a univariate emulator is as follows:
+$$f(x) = g(x)^T \xi + u(x),$$
+where $g(x)^T \xi$ is a regression term and $u(x)$ is a [weakly stationary process](https://en.wikipedia.org/wiki/Stationary_process#Weak_or_wide-sense_stationarity) with mean zero. The role of the regression term is to mimic the global behaviour of the model output, while $u(x)$ represents localised deviations of the output from this global behaviour near to $x$.  
+
+The regression term is specified by:
+
+- a vector of functions of the parameters $g(x)$ which determine the shape and complexity of the regression 
+<span class="abbr" title=""><abbr title="A hypersurface is a mathematical object that generalizes the concept of surface from the three-dimensional space to hyperspaces, i.e. spaces of dimension higher than three.
+">hypersurface</abbr></span>
+ we fit to the training data. For example, if $x$ is one dimensional, i.e. we have just one parameter, setting $g(x)=(1,x)$  corresponds to fitting a straight line to the training data. Similarly, setting $g(x)=(1,x,x^2)$ corresponds to fitting a parabola to the training data. 
+
+- a vector of regression coefficients $\xi$. In the one dimensional case for example, if we set $g(x)=(1,x)$, then $\xi=(\xi_0,\xi_1)$, where $\xi_0$ is the $y$-intercept and $\xi_1$ is the gradient of the straight line fitted to the training data. 
+
+The term $u(x)$ captures the local deviations of the output from the regression hypersurface. For each parameter $x$, we have a random variable $u(x)$ representing the residual at $x$. All $u(x)$ are assumed to have the same variance $\sigma^2$: the larger the value of $\sigma$, the farthest the model output can be from the regression hypersurface. In particular, larger values of the **emulator variance** $\sigma$ correspond to more uncertain emulators.  Furthermore, the process $u(x)$ encodes the covariance between neighbouring points based on closeness, i.e. the covariance between $u(x)$ and $u(x')$ is assumed to only depend on the distance of $x$ from $x'$ and not on the specific location of $x$ and $x'$. The covariance of $u(x)$ and $u(x')$ may be defined using hyperparameters, such as the correlation length. For more details on this, please see [Tutorial 1](https://danny-sc.github.io/Tutorial_1/).
+
+Choosing a value for $\sigma$ corresponds to making a judgment about how far we expect the output to be from the regression hypersurface. The [hmer](https://cran.r-project.org/web/packages/hmer/index.html) package, and in particular the function `emulator_from_data`, selects values of $\sigma$ (and of other relevant hyperparameters) for us based on the provided training data. 
 
 ## History matching with emulation workflow
 We now show the various steps of the history matching with emulation workflow and explain how each step can be performed using hmer functions.
@@ -385,34 +421,19 @@ The 'sigmas' in our `targets` list represent the uncertainty we have about the o
   
 Finally we need a set of `wave0` data to start. When using your own model, you can create the dataframe 'wave0' following the steps below:
   
-- build a named dataframe `initial_points` containing a space filling set of points, which can be generated using a Latin Hypercube Design or another sampling method of your choice. A rule of thumb is to select at least $10p$ parameter sets, where $p$ is the number of parameters in the model. The columns of `initial_points` should be named exactly as in the list `ranges`;
+- build a named dataframe `initial_points` containing a space filling set of points. A rule of thumb is to select at least $10p$ parameter sets, where $p$ is the number of parameters in the model. The columns of `initial_points` should be named exactly as in the list `ranges`;
 
 - run your model on the parameter sets in `initial_points` and define a dataframe `initial_results` in the following way: the nth row of `initial_results` should contain the model outputs corresponding to the chosen targets for the parameter set in the nth row of `initial_points`. The columns of `initial_results` should be named exactly as in the list `targets`;
 
 - bind `initial_points` and `initial_results` by their columns to form the dataframe `wave0`.
 
-For this workshop, we generate parameter sets using a [Latin Hypercube](https://en.wikipedia.org/wiki/Latin_hypercube_sampling) design (see fig. \@ref(fig:figlhs) for a Latin hypercube example in two dimensions). 
-
-``` {r, figlhs, echo = FALSE, out.width = "60%", fig.cap='An example of Latin hypercube with 10 points in two dimensions: there is only one sample point in each row and each column.'}
-knitr::include_graphics('LHS.png')
-```
-
-Through the function `maximinLHS` we create a hypercube design with 90 (10 times the number of parameters) parameter sets for the training set and one with 90 parameter sets for the validation set. After creating the two hypercube designs, we bind them together to create `initial_LHS`:
+For this workshop, we created a helper function, `space_filling_design`, that takes the number of parameter sets to generate, the number of parameters and the range of each parameter, and returns a space filling design with the required number of parameter sets. In this case, we request $180$ parameter sets, $90$ for the training set and $90$ for the validation set.
 
 ```{r}
-initial_LHS_training <- maximinLHS(90, 9)
-initial_LHS_validation <- maximinLHS(90, 9)
-initial_LHS <- rbind(initial_LHS_training, initial_LHS_validation)
+initial_points <- space_filling_design(180, 9, ranges)
 ```
 
-Note that in `initial_LHS` each parameter is distributed on $[0,1]$. This is not exactly what we need, since each parameter has a different range. We therefore re-scale each component in `initial_LHS` multiplying it by the difference between the upper and lower bounds of the range of the  corresponding parameter and then we add the lower bound for that parameter. In this way we obtain `initial_points`, which contains parameter values in the correct ranges. 
-
-```{r}
-initial_points <- setNames(data.frame(t(apply(initial_LHS, 1, 
-                  function(x) x*unlist(lapply(ranges, function(x) x[2]-x[1])) + 
-                  unlist(lapply(ranges, function(x) x[1]))))), names(ranges))
-```
-
+In `initial_points` each row corresponds to a different parameter set and each column to a different parameter.
 
 We then run the model for the parameter sets in `initial_points` through the `get_results` function. This is a helper function that acts as `ode_results`, but has the additional feature of allowing us to decide which outputs and times should be returned: in our case we need the values of $I$ and $R$ at $t=25, 40, 100, 200, 300, 350$.
 
@@ -430,7 +451,7 @@ wave0 <- cbind(initial_points, initial_results)
 
 # Emulators {#constr}
 
-This section will start with a short recap on the structure of an emulator. We will then train the first wave of emulators and explore them through various visualisations. Note that this section is a bit technical: while it is important to grasp the overall picture of how emulators work, it is not crucial that you understand each detail given in here. 
+In this section we train the first wave of emulators and explore them through various visualisations. 
 
 Let us start by splitting `wave0` in two parts: the training set (the first half), on which we will train the emulators, and a validation set (the second half), which will be used to do diagnostics of the emulators. 
 
@@ -440,66 +461,13 @@ validation <- wave0[91:180,]
 ```
 
 
-## The structure of an emulator
-
-An [emulator](https://en.wikipedia.org/wiki/Emulator) is a way of representing our 
-<span class="abbr" title=""><abbr title="In Bayesian statistics, probability expresses a degree of belief in an event. Such belief can be based either on prior knowledge or on personal beliefs about the event. 
-">beliefs</abbr></span>
-about the behaviour of a function whose output is unknown. In this workshop what is unknown  is the behaviour of our SEIRS model at unevaluated input locations. Given a training dataset, i.e. a set of model runs, we can train an emulator and use it to get the expectation and variance for a model output at any parameter set, without the need to run the model at the chosen set. We think of the expectation as the prediction provided by the emulator at the chosen parameter set, and we think of the variance as the uncertainty associated to that prediction. 
-
-The general structure of a univariate emulator is as follows:
-$$f(x) = g(x)^T \xi + u(x),$$
-where $g(x)^T \xi$ is a regression term and $u(x)$ is a [weakly stationary process](https://en.wikipedia.org/wiki/Stationary_process#Weak_or_wide-sense_stationarity) with mean zero. The role of the regression term is to mimic the global behaviour of the model output, while $u(x)$ represents localised deviations of the output from this global behaviour near to $x$.  
-
-The regression term is specified by:
-
-- a vector of functions of the parameters $g(x)$ which determine the shape and complexity of the regression 
-<span class="abbr" title=""><abbr title="A hypersurface is a mathematical object that generalizes the concept of surface from the three-dimensional space to hyperspaces, i.e. spaces of dimension higher than three.
-">hypersurface</abbr></span>
- we fit to the training data. For example, if $x$ is one dimensional, i.e. we have just one parameter, setting $g(x)=(1,x)$  corresponds to fitting a straight line to the training data. Similarly, setting $g(x)=(1,x,x^2)$ corresponds to fitting a parabola to the training data. Fig \@ref(fig:regresresid) shows a one-dimensional example with a quadratic global behaviour: the model output to emulate is in black, while the best fitting parabola is in red.
-
-- a vector of regression coefficients $\xi$. In the one dimensional case for example, if we set $g(x)=(1,x)$, then $\xi=(\xi_0,\xi_1)$, where $\xi_0$ is the $y$-intercept and $\xi_1$ is the gradient of the straight line fitted to the training data. 
-
-``` {r, regresresid, echo = FALSE, out.width = "100%", fig.cap='Regression term and residuals in one dimensional example'}
-knitr::include_graphics('regres_resid_plot.png')
-```
-
-In general, and especially when dealing with complex models, we cannot expect the regression hypersurface to perfectly explain the behaviour of the output. For this reason it is necessary to account for the local deviations of the output from the regression hypersurface. These local deviations, also referred to as residuals, are shown in blue in Fig \@ref(fig:regresresid). Since residuals are unknown, we treat them as random variables: for each parameter $x$, we then have a random variable $u(x)$ representing the residual at $x$. In the [hmer](https://cran.r-project.org/web/packages/hmer/index.html) package we assume this collection of random variables $u(x)$ to be a [weakly stationary process](https://en.wikipedia.org/wiki/Stationary_process#Weak_or_wide-sense_stationarity) (similar to a [Gaussian process](https://en.wikipedia.org/wiki/Gaussian_process)), with mean zero. Informally this means that we consider $u(x)$ as a random variable with mean zero and that the covariance of $u(x)$ and $u(x')$ only depends on the difference $x-x'$.
-In the case of a Gaussian process, we further assume that $u(x)$ is normally distributed and that $(u(x),u(x'))$ is a multivariate normal variable.
-
-To fully describe a weakly stationary process $u(x)$ we need to define the covariance structure, i.e. we need to say how correlated the residuals at $x$ and $x'$ are, for any pair $(x,x')$.  When using Gaussian processes, as we do in this workshop, a commonly adopted covariance structure is given by 
-
-$$\text{Cov}(u(x), u(x'))= \sigma^2  c(x,x^{\prime}) $$
-where  $c$ is the square-exponential correlation function
-
-$$c(x,x^{\prime}) :=  \exp\left(\frac{-\sum\limits_{i}(x_{i}-x_{i}^{\prime})^2}{\theta^2}\right)$$
-
-where $x_i$ is the ith-component of the parameter set $x.$ This covariance structure is the default option in the [hmer](https://cran.r-project.org/web/packages/hmer/index.html) package, even though other structures are available.
-
-Let us look at the various terms in this covariance structure:
-
-- $\sigma^2$ is the **emulator variance**, i.e the variance of $u(x)$, for all parameter sets $x$. The value of $\sigma$ reflects how far from the regression hypersurface the model output can be. The larger the value of $\sigma$, the farthest the model output can be from the regression hypersurface. In particular, larger values of $\sigma$ correspond to more uncertain emulators. For example, Fig. \@ref(fig:regresresid) was generated with a $\sigma$ of $0.3$. A higher $\sigma$ of $1$, would create wider residuals, as in the plot below:
-
-``` {r, echo = FALSE, out.width = "100%", fig.cap='Regression term and residuals in one dimensional example, with higher $\\sigma$'}
-knitr::include_graphics('regres_resid_plot_highsigma.png')
-```
-
-- $\theta$ is the **correlation length** of the process. For a given pair $(x,x')$, the larger $\theta$ is, the larger is the covariance between $u(x)$ and $u(x')$. This means that the size of $\theta$ determines how close two parameter sets must be in order for the corresponding residuals to be non-negligibly correlated.  Informally, we can think of $\theta$ in the following way: if the distance of two parameters sets is no more than $\theta$, then their residuals will be well correlated. In particular, a larger $\theta$ results in a smoother (less wiggly) emulator.
-
-Choosing values for $\sigma$ and $\theta$ corresponds to making a judgment about how far we expect the output to be from the regression hypersurface ($\sigma$) and about its smoothness ($\theta$). The [hmer](https://cran.r-project.org/web/packages/hmer/index.html) package, and in particular the function `emulator_from_data`, selects values of $\sigma$ and $\theta$ for us based on the provided training data. 
-
 ## Training emulators
 
-We are now ready to train the emulators using the `emulator_from_data` function, which needs at least the following data: the training set, the names of the targets we want to emulate and the ranges of the parameters. By default, `emulator_from_data` assumes a square-exponential correlation function and finds suitable values for the variance $\sigma$ and the correlation length $\theta$ of the process $u(x)$. In this workshop, in order to shorten the time needed to train emulators, we pass one more argument to `emulator_from_data`, setting the correlation lengths to be $0.55$ for all emulators. Normally, the argument `c_lengths` will not be needed.
-
-```{info, title="How was the value 0.55 chosen?"}
-The value $0.55$ was chosen using the Durham heuristics, which states that the correlation length should lie in the interval $[1/(n+1), 2/(n+1)]$ where $n$ is the degree of the fitted surface. In our case $n$ is 2 and therefore the correlation length should be in $[1/3,2/3]$. We chose $0.55$, a value little above the midpoint of this interval, to represent our belief that the model is smooth (and therefore correlations between neighboring points should be appreciable).
-```
-
+We are now ready to train the emulators using the `emulator_from_data` function, which needs at least the following data: the training set, the names of the targets we want to emulate and the ranges of the parameters. By default, `emulator_from_data` assumes a square-exponential correlation function and finds suitable values for the variance $\sigma$ and the correlation length $\theta$ of the process $u(x)$. In this workshop, in order to shorten the time needed to train emulators, we pass one more argument to `emulator_from_data`, setting the correlation length (a hyperparameter defining the covariance structure of the process $u(x)$) to be $0.55$ for all emulators. Normally, the argument `c_lengths` will not be needed, since `emulator_from_data` will estimate them for us, based on the training data.
 
 ```{r}
 ems_wave1 <- emulator_from_data(training, names(targets), ranges, 
-                                c_lengths= rep(0.55,length(targets)))
+                                c_lengths= rep(0.55,length(targets)), verbose = FALSE)
 ```
 
 In `ems_wave1` we have information about all emulators. Let us take a look at the emulator of the number of recovered individuals at time $t=200$:
@@ -749,29 +717,11 @@ In this section we generate the set of points that will be used to train the sec
 
 The function `generate_new_runs` is designed to generate new sets of parameters; its default behaviour is as follows.
 
-STEP 1. If  prior parameter sets are provided, step 1 is skipped, otherwise a set is generated using a [Latin Hypercube Design](https://en.wikipedia.org/wiki/Latin_hypercube_sampling), rejecting implausible parameter sets. Figure \@ref(fig:lhsamp) shows an example of LH sampling (not for our model), with implausible parameter sets in red and non-implausible ones in blue:
+STEP 1. If  prior parameter sets are provided, step 1 is skipped, otherwise a set is generated using a [Latin Hypercube Design](https://en.wikipedia.org/wiki/Latin_hypercube_sampling), rejecting implausible parameter sets.
 
-``` {r, lhsamp, echo = FALSE, out.width = "75%", fig.cap='LH sampling'}
-knitr::include_graphics('LHSamp.png')
-```
+STEP 2. Pairs of parameter sets are selected at random and more sets are sampled from lines connecting them, with particular importance given to those that are close to the non-implausible boundary. 
 
-STEP 2. Pairs of parameter sets are selected at random and more sets are sampled from lines connecting them, with particular importance given to those that are close to the non-implausible boundary. Figure \@ref(fig:linesamp) shows line sampling on top of the previously shown LH sampling: non-implausible parameter sets provided by LH sampling are in grey, parameter sets proposed by line sampling are in red if implausbile and in blue if non-implausible.
-
-``` {r, linesamp, echo = FALSE, out.width = "75%", fig.cap='Line sampling'}
-knitr::include_graphics('LineSamp.png')
-```
-
-STEP 3. Using these as seeding points, more parameter sets are generated using [importance sampling](https://en.wikipedia.org/wiki/Importance_sampling) to attempt to fully cover the non-implausible region. Figure \@ref(fig:impsamp) has non-implausible parameter sets provided by LH and line sampling in grey and non-implausibile parameter sets found by importance sampling in blue. 
-
-``` {r, impsamp, echo = FALSE, out.width = "75%", fig.cap='Importance sampling'}
-knitr::include_graphics('ImpSamp.png')
-```
-
-The combination of the three steps above brings to the following final design of non-implausible parameter sets:
-
-``` {r, echo = FALSE, out.width = "75%", fig.cap='Overall design of new non-implausible parameter sets'}
-knitr::include_graphics('FinalSamp.png')
-```
+STEP 3. Using these as seeding points, more parameter sets are generated using [importance sampling](https://en.wikipedia.org/wiki/Importance_sampling) to attempt to fully cover the non-implausible region. 
 
 Let us generate $180$ new sets of parameters, using the emulators for the time up to $t=200$. Focusing on early time outputs can be useful when performing the first waves of history matching, since the behaviour of the epidemic at later times will depend on the behaviour at earlier times. Note that the generation of new points might require a few minutes.
 
@@ -792,13 +742,13 @@ By looking at the plot we can learn a lot about the non-implausible space. For e
 Now that we have generated a new set of points, we can compare the model output at points in `initial_points` 
 
 ``` {r, echo = FALSE, out.width = "75%"}
-knitr::include_graphics('wave0SEIReval.png')
+knitr::include_graphics('wave0SEIReval_IR.png')
 ```
 
 with the model output at points in `new_points_restricted`
 
 ``` {r, echo = FALSE, out.width = "75%"}
-knitr::include_graphics('wave1SEIReval.png')
+knitr::include_graphics('wave1SEIReval_IR.png')
 ```
 
 We can clearly see that the range of possible results obtained when evaluating the model at `wave0` points is larger than the range obtained when evaluating the model at points in `new_points_restricted`. This is because we have performed a wave of the history matching process, discarding part of the initial input space that is not compatible with the targets.
