@@ -149,17 +149,18 @@ Before using a model for projection or planning, it is fundamental to explore pl
 
 ## History Matching
 
-History matching concerns the problem of identifying those parameter sets that may give rise to acceptable matches between the model outputs and the observed data. This part of the input space is referred to as **non-implausible**, while its complement is referred to as implausible. History matching proceeds as a series of iterations, called **waves**, where implausible areas of parameter space are identified and discarded. Each wave focuses the search for implausible space in the space that was characterized as non-implausible in all previous waves: thus the non-implausible space shrinks with each wave. To decide whether a parameter set $x$ is implausible we introduce the **implausibility measure**, which evaluates the difference between the model results and the observed data. If such measure is too high, the parameter set is discarded in the next wave of the process. 
+History matching concerns the problem of identifying those parameter sets that may give rise to acceptable matches between the model outputs and the observed data. History matching proceeds as a series of iterations, called **waves**, where **implausible** areas of parameter space, i.e. areas that are unable to provide a match with the observed data,  are identified and discarded. Each wave focuses the search for implausible space in the space that was characterized as non-implausible in all previous waves: thus the non-implausible space shrinks with each wave. To decide whether a parameter set $x$ is implausible we introduce the **implausibility measure**, which evaluates the difference between the model results and the observed data. If such measure is too high, the parameter set is discarded in the next wave of the process. 
 
 Note that history matching as just described still relies on the evaluation of the model at a large number of parameter sets, which is often unfeasible. Here is where emulators play a crucial role.
 
+
 ## Emulators   
 
-A long established method for handling computationally expensive models is to first construct an emulator: a **fast statistical approximation of the model** that can be used as a surrogate. One can either construct an emulator for each model output separately, or combine outputs together, through more advanced techniques. In this tutorial each model output will have its own emulator.
+A long established method for handling computationally expensive models is to first construct an emulator: a **fast statistical approximation of the model** that can be used as a surrogate. One can either construct an emulator for each model output separately, or combine outputs together, using more advanced techniques. In this tutorial each model output will have its own emulator.
 
-The model is run at a manageable number of parameter sets to provide training data for the emulator. The emulator is then built and can be used to obtain an expected value of the model output at any parameter set $x$, along with an estimate of the uncertainty in the approximation. 
+The model is run at a manageable number of parameter sets to provide training data for the emulator (typically at least $10p$ parameter sets, where $p$ is the number of parameters). The emulators are then built and can be used to obtain an expected value of each model output for any parameter set $x$, along with an estimate of the uncertainty in the approximation. 
 
-Emulators have two useful properties. First, they are **computationally efficient** - typically several orders of magnitude faster than the computer models they approximate. Second, they allow for the uncertainty in their approximations to be taken into account. These two properties mean that emulators can be used to make inferences as a surrogate for the model itself. In particular, it is possible to evaluate the implausibility measure at any given parameter set by comparing the observed data to the emulator output, rather than the model output. This greatly speeds up the process and allows for a comprehensive exploration of the input space.
+Emulators have two useful properties. First, they are **computationally efficient** - typically several orders of magnitude faster than the computer models they approximate. Second, they allow for the uncertainty in their approximations to be taken into account. These two properties mean that emulators can be used to make inferences as a surrogate for the model itself. In particular, it is possible to evaluate the implausibility measure at any given parameter set by comparing the emulator output to observed data, rather than using model output. This greatly speeds up the process and allows for a comprehensive exploration of the input space.
 
 The general structure of a univariate emulator is as follows:
 $$f(x) = g(x)^T \xi + u(x),$$
@@ -170,13 +171,14 @@ The regression term is specified by:
 - a vector of functions of the parameters $g(x)$ which determine the shape and complexity of the regression 
 <span class="abbr" title=""><abbr title="A hypersurface is a mathematical object that generalizes the concept of surface from the three-dimensional space to hyperspaces, i.e. spaces of dimension higher than three.
 ">hypersurface</abbr></span>
- we fit to the training data. For example, if $x$ is one dimensional, i.e. we have just one parameter, setting $g(x)=(1,x)$  corresponds to fitting a straight line to the training data. Similarly, setting $g(x)=(1,x,x^2)$ corresponds to fitting a parabola to the training data. 
+ we fit to the training data. 
 
-- a vector of regression coefficients $\xi$. In the one dimensional case for example, if we set $g(x)=(1,x)$, then $\xi=(\xi_0,\xi_1)$, where $\xi_0$ is the $y$-intercept and $\xi_1$ is the gradient of the straight line fitted to the training data. 
+- a vector of regression coefficients $\xi$. 
 
-The term $u(x)$ captures the local deviations of the output from the regression hypersurface. For each parameter $x$, we have a random variable $u(x)$ representing the residual at $x$. All $u(x)$ are assumed to have the same variance $\sigma^2$: the larger the value of $\sigma$, the farthest the model output can be from the regression hypersurface. In particular, larger values of the **emulator variance** $\sigma$ correspond to more uncertain emulators.  Furthermore, the process $u(x)$ encodes the covariance between neighbouring points based on closeness, i.e. the covariance between $u(x)$ and $u(x')$ is assumed to only depend on the distance of $x$ from $x'$ and not on the specific location of $x$ and $x'$. The covariance of $u(x)$ and $u(x')$ may be defined using hyperparameters, such as the correlation length. For more details on this, please see [Tutorial 1](https://danny-sc.github.io/Tutorial_1/).
+The term $u(x)$ captures the local deviations of the output from the regression hypersurface. For each parameter $x$, we have a random variable $u(x)$ representing the residual at $x$. All $u(x)$ are assumed to have the same variance $\sigma^2$: the larger the value of $\sigma$, the farthest the model output can be from the regression hypersurface. In particular, larger values of the **emulator variance** $\sigma$ correspond to more uncertain emulators. For more details on the structure of an emulator, please see our more comprehensive [Tutorial 1](https://danny-sc.github.io/Tutorial_1/).
 
 Choosing a value for $\sigma$ corresponds to making a judgment about how far we expect the output to be from the regression hypersurface. The [hmer](https://cran.r-project.org/web/packages/hmer/index.html) package, and in particular the function `emulator_from_data`, selects values of $\sigma$ (and of other relevant hyperparameters) for us based on the provided training data. 
+
 
 ## History matching with emulation workflow
 We now show the various steps of the history matching with emulation workflow and explain how each step can be performed using hmer functions.
@@ -239,7 +241,13 @@ and four possible transitions
 
 SEIRS models are suitable to study those infectious diseases that have an incubation period and do not confer permanent immunity.">
 SEIRS</abbr></span>
-model, described by the following differential equations:
+model, 
+
+``` {r, echo = FALSE, fig.cap='SEIRS Diagram'}
+knitr::include_graphics('SEIRSdiagram.png')
+```
+
+described by the following differential equations:
 \begin{align}
 \frac{dS}{dt} &= b N - \frac{\beta(t)IS}{N} + \omega R -\mu S  \\ 
 \frac{dE}{dt} &= \frac{\beta(t)IS}{N} - \epsilon E - \mu E \\ 
@@ -262,11 +270,8 @@ where $N$ is the total population, varying over time, and the parameters are as 
 
 - $\omega$ is the rate at which immunity is lost following recovery. 
 
-``` {r, echo = FALSE, fig.cap='SEIRS Diagram'}
-knitr::include_graphics('SEIRSdiagram.png')
-```
 
-The rate of infection $\beta(t)$ is set to be a simple linear function interpolating between points, where the points in question are $\beta(0)=\beta_1$, $\beta(100) = \beta(180) = \beta_2$, $\beta(270) = \beta_3$ and where $\beta_2 < \beta_1 < \beta_3$. This choice was made to represent an infection rate that initially drops due to external (social) measures and then raises when a more infectious variant appears. Here $t$ is taken to measure days. Below we show a graph of the infection rate over time when $\beta_1=0.3, \beta_2=0.1$ and $\beta_3=0.4$:
+The rate of infection between each infectious and susceptible individual $\beta(t)$ is set to be a simple linear function interpolating between points, where the points in question are $\beta(0)=\beta_1$, $\beta(100) = \beta(180) = \beta_2$, $\beta(270) = \beta_3$ and where $\beta_2 < \beta_1 < \beta_3$. This choice was made to represent an infection rate that initially drops due to external (social) measures and then raises when a more infectious variant appears. Here $t$ is taken to measure days. Below we show a graph of the infection rate over time when $\beta_1=0.3, \beta_2=0.1$ and $\beta_3=0.4$:
 
 ``` {r, echo = FALSE, fig.cap='Infection rate graph', out.width="60%"}
 knitr::include_graphics('infection_rate.png')
@@ -310,7 +315,7 @@ plot(solution)
 ```
 
 ```{task}
-If you would like, familiarise yourself with the model. Investigate how the plots change as you change the values of the parameters.
+Take some time to familiarise yourself with the model. Investigate how the plots change as you change the values of the parameters.
 
 ``{info, title = "R tip", collapsible = TRUE, ref.label = "rtip1"}
 ``
@@ -417,11 +422,19 @@ targets <- list(
 )
 ``` 
   
-The 'sigmas' in our `targets` list represent the uncertainty we have about the observations. 
+The 'sigmas' in our `targets` list represent the uncertainty we have about the observations. Since our model is synthetic, we couldn't rely on observations to define our targets. Instead, we chose the parameter set 
+
+```{r}
+chosen_params <- list(b = 1/(76*365), mu = 1/(76*365), beta1 = 0.214, 
+                      beta2 = 0.107, beta3 = 0.428, epsilon = 1/7, 
+                      alpha = 1/50, gamma = 1/14, omega = 1/365)
+```
+
+ran the model with it and used the relevant model outputs as the ‘val’ in `targets`. The ‘sigma’ components were chosen to be $5\%$ of the corresponding ‘val’.
   
 Finally we need a set of `wave0` data to start. When using your own model, you can create the dataframe 'wave0' following the steps below:
   
-- build a named dataframe `initial_points` containing a space filling set of points. A rule of thumb is to select at least $10p$ parameter sets, where $p$ is the number of parameters in the model. The columns of `initial_points` should be named exactly as in the list `ranges`;
+- build a named dataframe `initial_points` containing a space filling set of points. A rule of thumb is to select at least $10p$ parameter sets, where $p$ is the number of parameters in the model, for the training set. The columns of `initial_points` should be named exactly as in the list `ranges`;
 
 - run your model on the parameter sets in `initial_points` and define a dataframe `initial_results` in the following way: the nth row of `initial_results` should contain the model outputs corresponding to the chosen targets for the parameter set in the nth row of `initial_points`. The columns of `initial_results` should be named exactly as in the list `targets`;
 
@@ -453,7 +466,7 @@ wave0 <- cbind(initial_points, initial_results)
 
 In this section we train the first wave of emulators and explore them through various visualisations. 
 
-Let us start by splitting `wave0` in two parts: the training set (the first half), on which we will train the emulators, and a validation set (the second half), which will be used to do diagnostics of the emulators. 
+Let us start by splitting `wave0` in two parts: the training set (the first half), on which we will train the emulators, and a validation set (the second half), which will be used to conduct emulator diagnostics. 
 
 ```{r}
 training <- wave0[1:90,]
@@ -467,7 +480,8 @@ We are now ready to train the emulators using the `emulator_from_data` function,
 
 ```{r}
 ems_wave1 <- emulator_from_data(training, names(targets), ranges, 
-                                c_lengths= rep(0.55,length(targets)), verbose = FALSE)
+                                c_lengths= rep(0.55,length(targets)),
+                                verbose = FALSE)
 ```
 
 In `ems_wave1` we have information about all emulators. Let us take a look at the emulator of the number of recovered individuals at time $t=200$:
@@ -476,7 +490,7 @@ In `ems_wave1` we have information about all emulators. Let us take a look at th
 ems_wave1$R200
 ```
 
-The print statement provides an overview of the emulator specifications, which refer to the global part, and correlation structure, which refers to the local part:
+The print statement provides an overview of the emulator specifications, which refer to the global part, and correlation structure, which refers to the local part (see Section 2 for the distinction between the global and local part of an emualator):
 
 - Active variables: these are the variables that have the most explanatory power for the chosen output. 
 
@@ -499,7 +513,7 @@ Looking at what variables are active for different emulators is often an instruc
 plot_actives(ems_wave1)
 ```
 
-From this table, we can immediately see that mu is inactive for most outputs, while beta1, beta2, epsilon, alpha, gamma are active for most outputs. We also see that beta3 tends to be active for outputs at later times and inactive for outputs at earlier times, as one would expect. 
+From this table, we can immediately see that mu is inactive for most outputs, while beta1, beta2, epsilon, alpha, gamma are active for most outputs. We also see that beta3 tends to be active for outputs at later times and inactive for outputs at earlier times, as one would expect. Note that beta3 is active for R100: even if this is not necessarily what we would have expected, this is not a problem, since emulators make use of weakly stationary processes to account for differences between the model output and the regression surface.
 
 As mentioned above, `emulator_plot` can also plot the variance of a given emulator: 
 
@@ -526,7 +540,7 @@ where $f(x)$ is the emulator output, $z$ the target, and
 The observation uncertainty $V_0$ is represented by the 'sigma' values in the `targets` list, while $V_c$ is the emulator variance, which we discussed in the previous section.
 
 A very large value of $\text{Imp}(x)$ means that we can be confident that the parameter set $x$ does not provide a good match to the observed data, even factoring in the additional uncertainty that comes with the use of emulators. When $\text{Imp}(x)$ is small, it could mean that the emulator output is very close 
-to the model output or it could mean that the uncertainty in the denominator of $\text{Imp}(x)$ is large. In the former case, the emulator retains the parameter set, since it is likely to give a good fit to the observation for that output. In the latter case, the emulator does not have enough information to rule the parameter set out and therefore keeps it to explore it further in the next wave.
+to the model output or it could mean that the uncertainty in the denominator of $\text{Imp}(x)$ is large. In the former case, the emulator retains the parameter set, since it is likely to give a good fit to the observation for that output. In the latter case, the emulator does not have enough information to rule the parameter set out and therefore keeps it to explore further in the next wave.
 
 An important aspect to consider is the choice of cut-off for the implausibility measure. A rule of thumb follows [Pukelsheim's $3\sigma$ rule](https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule), a very general result which states that for any continuous unimodal distribution $95\%$ of the probability lies within $3$ sigma of the mean, regardless of asymmetry (or skewness etc). Following this rule, we set the implausibility threshold to be $3$: this means that a parameter $x$ is classified as non-implausible only if its implausibility is below $3$. 
 
@@ -544,23 +558,34 @@ $$\text{Imp}_M(x) = \max_{i=1,\dots,N}\text{Imp}_{i}(x),$$ where $\text{Imp}_i(x
 Note that Pukelsheim's rule applies for each emulator separately, but when we combine several emulators' implausibilities together a threshold of $3$ might be overly restrictive. For this reason, for large collections of emulators, it may be useful to replace the maximum implausibility with the second- or third-maximum implausibility. This also provides robustness to the failure of one or two of the emulators. 
 
 ```{task}
-Explore the functionalities of `emulator_plot` and produce a variety of implausibility plots. Here are a few suggestions: set `plot_type` to 'imp' to get implausibility plots or to 'nimp' to display the maximum implausibility plot; use the argument `nth` to obtain the second- or third- maximum implausibility plot; select a subset of all targets to pass to `emulator_plot`; change the value of the argument `fixed_vals` to decide where to slice the parameters that are not shown in the plots.
+Explore the functionalities of `emulator_plot` and produce a variety of implausibility plots. Here are a few suggestions:
+
+- set `plot_type` to 'imp' to get implausibility plots or to 'nimp' to display the maximum implausibility plot; 
+
+- use the argument `nth` to obtain the second- or third- maximum implausibility plot;
+
+- select a subset of all targets to pass to `emulator_plot`;
+
+- change the value of the argument `fixed_vals` to decide where to slice the parameters that are not shown in the plots.
+
 ```
 
 ```{solution}
 Let us start by visualising the maximum implausibility passing all emulators to `emulator_plot` and setting `plot_type='nimp'`:
 
 ``{r fig.width = 7, fig.height = 6}
-emulator_plot(ems_wave1, plot_type = 'nimp', targets = targets, params = c('beta1', 'gamma'), cb=T)
+emulator_plot(ems_wave1, plot_type = 'nimp', targets = targets, 
+              params = c('beta1', 'gamma'), cb=T)
 ``
 
-This plot shows very high values of the implausibility for most points in the box. During the first few waves of history matching, one can consider second-maximum implausibility, rather than maximum implausibility. This means that instead of requiring the implausibility measure to be under the chosen threshold for all outputs, we allow (at most) one of them to be over it. This approach, which may result in less space cut out during the first few waves, has the advantage of being more conservative, reducing the risk that parts of the input space may be incorrectly cut. The more strict maximum implausibility measure can then be adopted in later waves, when the space to search is considerably smaller than the original input space, and the emulators will be less uncertain. To work with second-maximum implausibility we simply add nth=2 to the previous function call:
+This plot shows very high values of the implausibility for most points in the box. During the first few waves of history matching, one can consider second-maximum implausibility, rather than maximum implausibility. This means that instead of requiring the implausibility measure to be under the chosen threshold for all outputs, we allow (at most) one of them to be over it. This approach, which may result in less space cut out during the first few waves, has the advantage of being more conservative, reducing the risk that parts of the input space may be incorrectly cut. The more strict maximum implausibility measure can then be adopted in later waves, when the space to search is considerably smaller than the original input space, and the emulators less uncertain. To work with second-maximum implausibility we simply add nth=2 to the previous function call:
 
 ``{r fig.width = 7, fig.height = 6}
-emulator_plot(ems_wave1, plot_type = 'nimp', targets = targets, params = c('beta1', 'gamma'), cb=T, nth=2)
+emulator_plot(ems_wave1, plot_type = 'nimp', targets = targets, 
+              params = c('beta1', 'gamma'), cb=T, nth=2)
 ``
 
-One of the advantages of history matching and emulation is that we are not obliged to emulate all outputs at each wave. This flexibility comes in handy, for example, when the emulator for a given output does not perform well at a certain wave: we can simply exclude that output and emulate it at a later wave. Another common situation where it may be useful to select a subset of emulators is when we have early outputs and late outputs, as in this workshop. It is often the case that later outputs have greater variability compared to earlier outputs, since they have more time to diverge. As a consequence, including emulators for later outputs in the first few waves may not be particularly convenient: it would both increase the number of calculations to make (since we would train more emulators), and would probably contribute to a lesser extent to the reduction of the parameter space.
+One of the advantages of history matching and emulation is that we are not obliged to emulate all outputs at each wave. This flexibility can be useful, for example, when the emulator for a given output does not perform well at a certain wave: we can simply exclude that output and emulate it in later waves. Another common situation where it may be useful to select a subset of emulators is when we have early outputs and late outputs, as in this workshop. It is often the case that later outputs have greater variability compared to earlier outputs, since they have more time to diverge. As a consequence, including emulators for later outputs in the first few waves may not be desirable: it would both increase the number of calculations to make (since we would train more emulators), and would probably contribute to a lesser extent to the reduction of the parameter space.
 
 We can focus on early times outputs (e.g. up to $t=100$), and produce implausibility plots for them:
   
@@ -570,7 +595,7 @@ emulator_plot(restricted_ems, plot_type = 'imp', targets = targets,
               params = c('beta1', 'gamma'), cb=T)
 ``
 
-Finally let us set the unshown parameters to be as in `chosen_params`:
+Finally let us set the unshown parameters to be as in `chosen_params` (the parameter set used to define the targets):
 
 ``{r fig.width = 7, fig.height = 6}
 emulator_plot(restricted_ems, plot_type = 'nimp', targets = targets[c(1,2,3,7,8,9)], 
@@ -590,7 +615,7 @@ In this section we explore various diagnostic tests to evaluate the performance 
 
 For a given set of emulators, we want to assess how accurately they reflect the model outputs over the input space. For a given validation set, we can ask the following questions:
 
-- Within uncertainties, does the emulator output accurately represent the equivalent model output?
+- Allowing for uncertainty, does the emulator output accurately represent the equivalent model output?
 
 - Does the emulator adequately classify parameter sets as implausible or non-implausible?
 
@@ -599,7 +624,8 @@ For a given set of emulators, we want to assess how accurately they reflect the 
 The function `validation_diagnostics` provides us with three diagnostics, addressing the three questions above.
 
 ```{r fig.width = 10, fig.height = 10, eval=F}
-vd <- validation_diagnostics(ems_wave1$R200, validation = validation, targets = targets, plt=TRUE)
+vd <- validation_diagnostics(ems_wave1$R200, validation = validation, 
+                             targets = targets, plt=TRUE)
 ```
 
 ```{r fig.width = 10, fig.height = 3.5, echo=F}
@@ -610,7 +636,7 @@ se <- standard_errors(ems_wave1$R200, validation = validation, targets = targets
 par(op)
 ```
 
-In the **first column**,  the emulator expectation is plotted against the model output for each validation point, providing the dots in the graph. The emulator uncertainty at each validation point is shown in the form of a vertical interval that goes from $3\sigma$ below to $3\sigma$ above the emulator expectation, where $\sigma$ is the emulator variance at the considered point. An 'ideal' emulator would exactly reproduce the model results: this behaviour is represented by the green line $f(x)=E[f(x)]$ (this is a diagonal line, visible here only in the bottom left and top right corners). Any parameter set whose emulated prediction lies more than $3\sigma$ away from the model output is highlighted in red. Note that we do not need to have no red points for the test to be passed: since we are plotting $3\sigma$ bounds, statistically speaking it is ok to have up to $5\%$ of validation points in red (see [Pukelsheim's $3\sigma$ rule](https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule)). 
+In the **first column**,  the emulator expectation $E[f(x)]$ is plotted against the model output $f(x)$ for each validation point, providing the dots in the graph. The emulator uncertainty at each validation point is shown in the form of a vertical interval that goes from $3\sigma$ below to $3\sigma$ above the emulator expectation, where $\sigma$ is the emulator variance at the considered point. An 'ideal' emulator would exactly reproduce the model results: this behaviour is represented by the green line $f(x)=E[f(x)]$ (this is a diagonal line, visible here only in the bottom left and top right corners). Any parameter set whose emulated prediction lies more than $3\sigma$ away from the model output is highlighted in red. Note that we do not need to have no red points for the test to be passed: since we are plotting $3\sigma$ bounds, statistically speaking it is ok to have up to $5\%$ of validation points in red (see [Pukelsheim's $3\sigma$ rule](https://en.wikipedia.org/wiki/68%E2%80%9395%E2%80%9399.7_rule)). 
 
 The **second column** compares the emulator implausibility to the equivalent model implausibility (i.e. the implausibility calculated replacing the emulator output with the model output). There are three cases to consider:
 
@@ -658,7 +684,7 @@ A higher value of $\sigma$ has therefore allowed us to build a more conservative
 Explore different values of $\sigma$. What happens for very small/large values of $\sigma$?
 
 ``{info, title = "R tip", collapsible = TRUE}
-If `em` is an emulator, you can change its sigma by a factor x through the following line of code: `ems$mult_sigma(x)`.
+If `em` is an emulator, you can change its sigma by a factor x through the following line of code: `em$mult_sigma(x)`.
 
 `` 
 
@@ -670,8 +696,8 @@ Let us set $\sigma$ to be ten times smaller than its default value:
   
 ``{r fig.width = 10, fig.height = 10, eval=F}
 tinysigma_emulator <- ems_wave1$R200$mult_sigma(0.1)
-vd <- validation_diagnostics(tinysigma_emulator, validation = validation, targets = targets, 
-                             plt=TRUE)
+vd <- validation_diagnostics(tinysigma_emulator, validation = validation, 
+                             targets = targets, plt=TRUE)
 ``
 
 ``{r fig.width = 10, fig.height = 3.5, echo=F}
@@ -683,7 +709,7 @@ se <- standard_errors(tinysigma_emulator, validation = validation, targets = tar
 par(op)
 ``
 
-In this case we built a very overconfident emulator. This is shown by the very small uncertainty intervals in the first column: as a consequence many points are in red. Similarly, if we look at the third column we notice that the standardised errors are extremely large, well beyond the value of $2$. 
+In this case we built a very overconfident emulator. This is shown by the very small uncertainty intervals in the first column: as a consequence many points are in red. Similarly, if we look at the third column we notice that the standardised errors are extremely large, well beyond the value of $3$. 
 
 Let us now set $\sigma$ to be ten times larger than its default value: 
   
@@ -708,7 +734,40 @@ The above exploration highlights the importance of finding a value of $\sigma$ t
 
 ```
 
+It is possible to automate the validation process. If we have a list of trained emulators `ems`, we can start with an iterative process to ensure that emulators do not produce misclassifications:
 
+1. check if there are misclassifications for each emulator (middle column diagnostic in plot above) with the function `classification_diag`;
+
+2. in case of misclassifications, increase the `sigma` (say by 10%) and go to step 1.
+
+The code below implements this approach:
+
+```{r, eval = F}
+for (j in 1:length(ems)) {
+      misclass <- nrow(classification_diag(ems[[j]], targets, validation, plt = FALSE))
+      while(misclass > 0) {
+        ems[[j]] <- ems[[j]]$mult_sigma(1.1)
+        misclass <- nrow(classification_diag(ems[[j]], targets, validation, plt = FALSE))
+      }
+}
+```
+
+The step above helps us ensure that our emulators are not overconfident and do not rule out parameter sets that give a match  with the empirical data.
+
+Once misclassifications have been eliminated, the second step is to ensure that the emulators’ predictions agree, within tolerance given by their uncertainty, with the simulator output. We can check how many validation points fail the first of the diagnostics (left column in plot above) with the function `comparison_diag`, and discard an emulator if it produces too many failures. The code below implements this, removing emulators for which more than 10% of validation points do not pass the first diagnostic:
+
+```{r, eval=F}
+bad.ems <- c()
+for (j in 1:length(ems)) {
+          bad.model <- nrow(comparison_diag(ems[[j]], targets, validation, plt = FALSE))
+          if (bad.model > floor(nrow(validation)/10)) {
+            bad.ems <- c(bad.ems, j)
+   }
+}
+ems <- ems[!seq_along(ems) %in% bad.ems]
+```
+
+Note that the code provided above gives just an example of how one can automate the validation process and can be adjusted to produce a more or less conservative approach. Furthermore, it does not check for more subtle aspects, e.g. whether an emulator systematically underestimates/overestimates the corresponding model output. For this reason, even though automation can be a useful tool (e.g. if we are running several calibration processes and/or have a long list of targets), we should not think of it as a full replacement for a careful, in-depth inspection from an expert.
 
 # Proposing new points
 
@@ -717,7 +776,7 @@ In this section we generate the set of points that will be used to train the sec
 
 The function `generate_new_runs` is designed to generate new sets of parameters; its default behaviour is as follows.
 
-STEP 1. If  prior parameter sets are provided, step 1 is skipped, otherwise a set is generated using a [Latin Hypercube Design](https://en.wikipedia.org/wiki/Latin_hypercube_sampling), rejecting implausible parameter sets.
+STEP 1. A set of parameter sets is generated using a [Latin Hypercube Design](https://en.wikipedia.org/wiki/Latin_hypercube_sampling), rejecting implausible parameter sets.
 
 STEP 2. Pairs of parameter sets are selected at random and more sets are sampled from lines connecting them, with particular importance given to those that are close to the non-implausible boundary. 
 
@@ -730,7 +789,7 @@ restricted_ems <- ems_wave1[c(1,2,3,4,7,8,9,10)]
 new_points_restricted <- generate_new_runs(restricted_ems, 180, targets, verbose=TRUE)
 ```
 
-We now plot `new_points_restricted` through `plot_wrap`. Note that we pass `ranges` too to `plot_wrap` to ensure that 
+We now plot `new_points_restricted` through `plot_wrap`. Note that we pass `ranges` to `plot_wrap` as well, to ensure that 
 the plot shows the entire range for each parameter: this allows us to see how the new set of parameters compares with respect to the original input space.
 
 ```{r fig.width = 9, fig.height = 9}
@@ -739,16 +798,14 @@ plot_wrap(new_points_restricted, ranges)
      
 By looking at the plot we can learn a lot about the non-implausible space. For example, it seems clear that low values of $\gamma$ cannot produce a match (cf. penultimate column). We can also deduce relationships between parameters: $\beta_1$ and $\epsilon$ are an example of negatively-correlated parameters. If $\beta_1$ is large then $\epsilon$ needs to be small, and vice versa.
 
-Now that we have generated a new set of points, we can compare the model output at points in `initial_points` 
+Now that we have generated a new set of points, we can compare the model output at points in `initial_points` with the model output at points in `new_points_restricted`
 
 ``` {r, echo = FALSE, out.width = "75%"}
-knitr::include_graphics('wave0SEIReval_IR.png')
+knitr::include_graphics('wave0SEIReval_targets.png')
 ```
 
-with the model output at points in `new_points_restricted`
-
 ``` {r, echo = FALSE, out.width = "75%"}
-knitr::include_graphics('wave1SEIReval_IR.png')
+knitr::include_graphics('wave1SEIReval_targets.png')
 ```
 
 We can clearly see that the range of possible results obtained when evaluating the model at `wave0` points is larger than the range obtained when evaluating the model at points in `new_points_restricted`. This is because we have performed a wave of the history matching process, discarding part of the initial input space that is not compatible with the targets.
@@ -784,7 +841,7 @@ This section consists of just one task: it is time to put all you have learnt so
 
 
 ```{task}
-Now that we have learnt how to customise the various steps of the process, try to improve the performance of the first wave of emulation and history matching. First, have a look at the emulator diagnostics and see if you can improve the performance of the emulators. Then generate new points using your improved emulators, and compare them to those shown in the task at the end of last section. 
+Now that we have learnt how to customise the various steps of the process, try to improve the performance of the first wave of emulation and history matching. First, have a look at the emulator diagnostics and see if you can improve the performance of the emulators. Then generate new points using your improved emulators.
 ```
 
 
@@ -792,7 +849,8 @@ Now that we have learnt how to customise the various steps of the process, try t
 First of all let us take a look at the diagnostics of all the emulators trained in wave 1:
   
 ``{r fig.height = 10, fig.width = 10}
-vd <- validation_diagnostics(ems_wave1, validation = validation, targets = targets, plt=TRUE)
+vd <- validation_diagnostics(ems_wave1, validation = validation, 
+                             targets = targets, plt=TRUE)
 ``
 
 Most emulators would benefit from having slightly more conservative emulators, which we can obtain by increasing $\sigma$. After some trial and error, we chose the following values of sigma for our emulators:
@@ -805,7 +863,8 @@ for (i in 1:length(ems_wave1)) {
 ``
 
 ``{r fig.height = 10, fig.width = 10}
-vd <- validation_diagnostics(ems_wave1, validation = validation, targets = targets, plt=TRUE)
+vd <- validation_diagnostics(ems_wave1, validation = validation, 
+                             targets = targets, plt=TRUE)
 ``
 
 The diagnostics look good now, so we can use the current emulators to generate new points:
@@ -822,9 +881,9 @@ new_points <- generate_new_runs(ems_wave1, 180, targets, verbose = TRUE)
 In this section we move to the second wave of emulation. We will start by defining all the data necessary to train the second wave of emulators. We will then go through the same steps as in the previous section to train the emulators, test them and generate new points. 
 
 
-To perform a second wave of history matching and emulation we follow the same procedure as in the previous sections, with two caveats. We start by forming a dataframe `wave1` using parameters sets in `new_points`, as we did with `wave0`, i.e. we evaluate the function `get_results` on `new_points` and then bind the obtained outputs to `new_points`. Half of `wave1` should be used as the training set for the new emulators, and the other half as the validation set to evaluate the new emulators' performance. 
+To perform a second wave of history matching and emulation we follow the same procedure as in the previous sections, with two caveats. We start by forming a dataframe `wave1` using parameters sets in `new_points`, as we did with `wave0`, i.e. we run the model at `new_points` using the function `get_results` and then bind the obtained outputs to `new_points`. Half of `wave1` should be used as the training set for the new emulators, and the other half as the validation set to evaluate the new emulators' performance. 
 
-Now note that parameter sets in `new_points` tend to lie in a small region inside the original input space, since `new_points` contains only non-implausible points, according to the first wave emulators. The first caveat is then that it is preferable to train the new emulators only on the non-implausible region found in wave one. This can be done simply setting the argument `check.ranges` to `TRUE` in the function `emulator_from_data`. The second caveat is that emulators from both the first and second wave need to be passed to the `generate_new_runs` function: this is because second wave emulators tend to be rather uncertain outside of the small region of the input space where they were trained.
+Now note that parameter sets in `new_points` tend to lie in a small region inside the original input space, since `new_points` contains only non-implausible points, according to the first wave emulators. The first caveat is then that it is preferable to train the new emulators only on the non-implausible region found in wave one. This can be done by setting the argument `check.ranges` to `TRUE` in the function `emulator_from_data`. The second caveat is that emulators from both the first and second wave need to be passed to the `generate_new_runs` function: this is because second wave emulators tend to be rather uncertain outside of the small region of the input space where they were trained.
 
 In the task below, you can have a go at wave 2 of the emulation and history matching process yourself.
 
@@ -836,7 +895,7 @@ Using `new_points` and setting `check.ranges` to `TRUE`, train new emulators. Cu
 We start by evaluating the function `get_results` on `new_points`. In other words, we run the model using the parameter sets we generated at the end of wave 1:
 ``{r}
 new_initial_results <- setNames(data.frame(t(apply(new_points, 1, get_results, 
-                                               c(25, 40, 100, 200, 300, 350), c('I', 'R')))), 
+                                c(25, 40, 100, 200, 300, 350), c('I', 'R')))), 
                                 names(targets))
 ``
 
@@ -875,7 +934,8 @@ inflations <- c(2,4,2,2,2,1,3,2,2,2,2,2)
 for (i in 1:length(ems_wave2)) {
 ems_wave2[[i]] <- ems_wave2[[i]]$mult_sigma(inflations[[i]])
 }
-vd <- validation_diagnostics(ems_wave2, validation =  new_validation, targets = targets, plt=TRUE)
+vd <- validation_diagnostics(ems_wave2, validation =  new_validation, 
+                             targets = targets, plt=TRUE)
 ``
 
 The diagnostics look ok now. Let us try to generate new parameter sets using all emulators build so far:
@@ -896,13 +956,14 @@ This worked well: the new non-implausible region is clearly smaller than the one
 In this last section we present three visualisations that can be used to compare the non-implausible space identified at different waves of the process. 
 
 
-The first visualisation, obtained through the function `wave_points`, shows the distribution of the non-implausible space for the waves of interest. For example, let us plot the distribution of parameter sets at the beginning, at the end of wave one and at the end of wave two:
+The first visualisation, obtained using the function `wave_points`, shows the distribution of the non-implausible space for the waves of interest. For example, let us plot the distribution of parameter sets at the beginning, at the end of wave one and at the end of wave two:
 
 ```{r fig.width = 9, fig.height = 9}
-wave_points(list(initial_points, new_points, new_new_points), input_names = names(ranges), p_size=1)
+wave_points(list(initial_points, new_points, new_new_points), 
+            input_names = names(ranges), p_size=1)
 ```
 
-Here `initial_points` are in yellow, `new_points` are in green and `new_new_points` are in purple. We set `p_size` to 1 to make the size of the points in the plot smaller. The plots in the main diagonal show the distribution of each parameter singularly: we can easily see that the distributions tend to become more and more narrow wave after wave. In the off-diagonal boxes we have plots for all possible pairs of parameters. Again, the non-implausible region identified at the end of each wave clearly becomes smaller and smaller.
+Here `initial_points` are in yellow, `new_points` are in green and `new_new_points` are in purple. We set `p_size` to 1 to make the size of the points in the plot smaller. The plots in the main diagonal show the distribution of each parameter individually: we can easily see that the distributions tend to become narrower each wave. In the off-diagonal boxes we have plots for all possible pairs of parameters. Again, the non-implausible region identified at the end of each wave clearly becomes smaller and smaller.
 
 The second visualisation allows us to assess how much better parameter sets at later waves perform compared to the original `initial_points`. Let us first create the dataframe `wave2`:
 
@@ -924,7 +985,7 @@ simulator_plot(all_points, targets)
 We can see that, compared to the space-filling random parameter sets used to train the first emulators, the new parameter sets are in much closer agreement with our targets. While there wasn't a single target matched by all parameter sets in wave zero, we have several targets matched by all parameter sets in wave 2 (I25, R25, R40, R100, R200). Subsequent waves, trained on the new parameter sets, will be more confident in the new non-implausible region: this will allow them to refine the region and increase the number of targets met.
 
 ```{task}
-In the plot above, some targets are easier to read than others: this is due to the targets having quite different values and ranges. To help with this, `simulator_plot` has the argument `normalize`, which can be set to `TRUE` to rescale the target bounds in the plot. Similarly, the argument `logscale` can be used to plot log-scaled target bounds. Explore these options and get visualisations that are easier to interpret.
+In the plot above, some targets are easier to read than others: this is due to the targets having quite different values and ranges. To help with this, `simulator_plot` has the argument `normalize`, which can be set to `TRUE` to rescale the target bounds in the plot. Similarly, the argument `logscale` can be used to plot log-scaled target bounds. Explore these options and produce visualisations that are easier to interpret.
 ```
 
 ```{solution}
@@ -932,7 +993,7 @@ In the plot above, some targets are easier to read than others: this is due to t
 simulator_plot(all_points, targets, normalize = TRUE)
 simulator_plot(all_points, targets, logscale = TRUE)
 ``
-These normalised/logscaled plots allow us to investigate better targets such as I200: it is now clear that this is not matched yet, even at the end of wave two. 
+These normalised/logscaled plots make some targets such as I200 clearer: it is now clear that I200 is not matched yet, even at the end of wave two. 
 ```
 
 In the third visualisation, output values for non-implausible parameter sets at each wave are shown for each combination of two outputs: 
@@ -944,7 +1005,7 @@ wave_values(all_points, targets, l_wid=1, p_size=1)
 The main diagonal shows the distribution of each output at the end of each wave, with the vertical red lines indicating the lower and upper bounds of the target. Above and below the main diagonal are plots for each pair of targets, with rectangles indicating the target area where full fitting points should lie (the ranges are normalised in the figures above the diagonals). These graphs can provide additional information on output distributions, such as correlations between them. The argument `l_wid` is optional and
 helps customise the width of the red lines that create the target boxes, and `p_size` let us choose the size of the points.
 
-In this workshop, we have shown how to perform the first two waves of the history matching process, using the hmer package.  Since this is an iterative process, at the end of each wave we need to decide whether to perform a new wave or to stop. One possible stopping criterion consists of comparing the emulator uncertainty and the target uncertainty. If the former is larger, another wave can be performed, since new, more confident emulators can potentially help further reduce the non-implausible space. If the uncertainty of emulators is smaller than the uncertainty in the targets, improving the performance of emulators would not make a substantial difference, and additional waves would not be beneficial. We may also choose to stop the iterations when we get emulators that provide us with full fitting points at a sufficiently high rate. In such a case, rather than spending time training new emulators, we can simply use the current emulators and generate points until we find enough full fitting ones. Finally, we might end up with all the input space deemed implausible at the end of a wave. In this situation, we would deduce that there are no parameter sets that give an acceptable match with the data: in particular, this would raise doubts about the adequacy of the chosen model, or input and/or output ranges.
+In this workshop, we have shown how to perform the first two waves of the history matching process, using the hmer package.  Since this is an iterative process, at the end of each wave we need to decide whether to perform a new wave or to stop. One possible stopping criterion consists of comparing the emulator uncertainty and the target uncertainty. If the former is larger, another wave can be performed, since new, more confident emulators can potentially help further reduce the non-implausible space. If it is smaller, training new emulators would not make a substantial difference, and additional waves would not be beneficial. We may also choose to stop the iterations when we get emulators that provide us with full fitting points at a sufficiently high rate. In such a case, rather than spending time training new emulators, we can simply use the current emulators to generate points until we find enough full fitting ones. Finally, we might end up with all the input space deemed implausible at the end of a wave. In this situation, we would deduce that there are no parameter sets that give an acceptable match with the data: in particular, this would raise doubts about the adequacy of the chosen model structure, or input and/or output ranges.
 
 
 
