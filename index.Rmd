@@ -74,7 +74,7 @@ return(initial_points)
 
 # Objectives
 This workshop offers a short introduction to the main functionality of the 
-[hmer](https://cran.r-project.org/web/packages/hmer/index.html) package, using a simple, deterministic epidemiological model. [hmer](https://cran.r-project.org/web/packages/hmer/index.html) allows you to efficiently implement the Bayes Linear emulation and history matching process, a calibration method that  has been successfully employed in several sciences (epidemiology, cosmology, climate science, systems biology, geology, energy systems etc.). 
+[hmer](https://cran.r-project.org/web/packages/hmer/index.html) package, using a simple, deterministic epidemiological model. [hmer](https://cran.r-project.org/web/packages/hmer/index.html) allows you to efficiently implement the Bayes Linear emulation and history matching process, a calibration method that  has been successfully employed in a wide range of fields (e.g. epidemiology, cosmology, climate science, systems biology, geology, energy systems). 
 
 Before starting the tutorial, you will need to run the code contained in the box below: it will load all relevant dependencies and a few helper functions which will be introduced and used later.   
 
@@ -142,9 +142,9 @@ return(initial_points)
 
 ## Why do we need history matching with emulation?
 
-Computer models, otherwise known as simulators, have been widely used in almost all fields in science and technology, to represent the  fundamental dynamics of physical systems. Due to the complexity of the interactions within a system, computer models frequently contain large numbers of parameters. 
+Computer models, otherwise known as simulators, are widely used in many fields in science and technology, to represent the  fundamental dynamics of physical systems. Due to the complexity of the interactions within a system, computer models frequently contain large numbers of parameters. 
 
-Before using a model for projection or planning, it is fundamental to explore plausible values for its parameters, calibrating the model to the observed data. This poses a significant problem, considering that it may take several minutes or even hours for the evaluation of a single scenario of a complex model.  As a consequence, a comprehensive analysis of the entire input space, requiring vast numbers of model evaluations, is often unfeasible. Emulation, combined with history matching, allows us to overcome this issue.
+Before using a model for projection or planning, it is fundamental to explore plausible values for its parameters, calibrating the model to the observed data. This poses a significant problem, considering that it may take several minutes or even hours for the evaluation of a single run of a complex model.  As a consequence, a comprehensive analysis of the entire input space, requiring vast numbers of model evaluations, is often unfeasible. Emulation, combined with history matching, allows us to overcome this issue.
 
 
 ## History Matching
@@ -175,7 +175,7 @@ The regression term is specified by:
 
 - a vector of regression coefficients $\xi$. 
 
-The term $u(x)$ captures the local deviations of the output from the regression hypersurface. For each parameter $x$, we have a random variable $u(x)$ representing the residual at $x$. All $u(x)$ are assumed to have the same variance $\sigma^2$: the larger the value of $\sigma$, the farthest the model output can be from the regression hypersurface. In particular, larger values of the **emulator variance** $\sigma$ correspond to more uncertain emulators. For more details on the structure of an emulator, please see our more comprehensive [Tutorial 1](https://danny-sc.github.io/Tutorial_1/).
+The term $u(x)$ captures the local deviations of the output from the regression hypersurface. For each parameter $x$, we have a random variable $u(x)$ representing the residual at $x$. All $u(x)$ are assumed to have the same variance $\sigma^2$: the larger the value of $\sigma$, the farthest the model output can be from the regression hypersurface. In particular, larger values of the **emulator variance** $\sigma$ correspond to more uncertain emulators. For more details, please see our more comprehensive [Tutorial 2](https://danny-sc.github.io/Tutorial_1/), which explains how emulators are defined and trained using the Bayes Linear methodology.
 
 Choosing a value for $\sigma$ corresponds to making a judgment about how far we expect the output to be from the regression hypersurface. The [hmer](https://cran.r-project.org/web/packages/hmer/index.html) package, and in particular the function `emulator_from_data`, selects values of $\sigma$ (and of other relevant hyperparameters) for us based on the provided training data. 
 
@@ -211,6 +211,10 @@ The last column of the table indicates what section of this workshop deals with 
 
 In this section we introduce the model that we will work with throughout our workshop. 
 
+``` {r, echo = FALSE, fig.cap='SEIRS Diagram'}
+knitr::include_graphics('SEIRSdiagram.png')
+```
+
 The model that we chose for demonstration purposes is a deterministic  <span class="abbr" title="A model consisting of four compartments 
 
 - $S$: Susceptible individuals,
@@ -241,13 +245,7 @@ and four possible transitions
 
 SEIRS models are suitable to study those infectious diseases that have an incubation period and do not confer permanent immunity.">
 SEIRS</abbr></span>
-model, 
-
-``` {r, echo = FALSE, fig.cap='SEIRS Diagram'}
-knitr::include_graphics('SEIRSdiagram.png')
-```
-
-described by the following differential equations:
+model, described by the following differential equations:
 \begin{align}
 \frac{dS}{dt} &= b N - \frac{\beta(t)IS}{N} + \omega R -\mu S  \\ 
 \frac{dE}{dt} &= \frac{\beta(t)IS}{N} - \epsilon E - \mu E \\ 
@@ -382,7 +380,7 @@ Here the black line is the model output when the model is run with the previous 
 
 
 
-# 'wave0' - parameter ranges, targets and design points
+# 'wave0' - parameter ranges, targets and design points {#wave0}
 
 In this section we set up the emulation task, defining the input parameter ranges, the calibration targets and all the data necessary to build the first wave of emulators.
 
@@ -434,7 +432,7 @@ ran the model with it and used the relevant model outputs as the ‘val’ in `t
   
 Finally we need a set of `wave0` data to start. When using your own model, you can create the dataframe 'wave0' following the steps below:
   
-- build a named dataframe `initial_points` containing a space filling set of points. A rule of thumb is to select at least $10p$ parameter sets, where $p$ is the number of parameters in the model, for the training set. The columns of `initial_points` should be named exactly as in the list `ranges`;
+- build a named dataframe `initial_points` containing a space filling set of points. A rule of thumb is to select at least $10p$ parameter sets for the training set, where $p$ is the number of parameters in the model. The dataframe `initial_points` can also contain parameter sets for the validation set, even though [hmer](https://cran.r-project.org/web/packages/hmer/index.html) can also work without such a set, using cross-validation. The columns of `initial_points` should be named exactly as in the list `ranges`;
 
 - run your model on the parameter sets in `initial_points` and define a dataframe `initial_results` in the following way: the nth row of `initial_results` should contain the model outputs corresponding to the chosen targets for the parameter set in the nth row of `initial_points`. The columns of `initial_results` should be named exactly as in the list `targets`;
 
@@ -490,7 +488,7 @@ In `ems_wave1` we have information about all emulators. Let us take a look at th
 ems_wave1$R200
 ```
 
-The print statement provides an overview of the emulator specifications, which refer to the global part, and correlation structure, which refers to the local part (see Section 2 for the distinction between the global and local part of an emualator):
+The print statement provides an overview of the emulator specifications, which refer to the global part, and correlation structure, which refers to the local part (see Section 2.3 for the distinction between the global and local part of an emulator):
 
 - Active variables: these are the variables that have the most explanatory power for the chosen output. 
 
@@ -513,7 +511,7 @@ Looking at what variables are active for different emulators is often an instruc
 plot_actives(ems_wave1)
 ```
 
-From this table, we can immediately see that mu is inactive for most outputs, while beta1, beta2, epsilon, alpha, gamma are active for most outputs. We also see that beta3 tends to be active for outputs at later times and inactive for outputs at earlier times, as one would expect. Note that beta3 is active for R100: even if this is not necessarily what we would have expected, this is not a problem, since emulators make use of weakly stationary processes to account for differences between the model output and the regression surface.
+From this table, we can immediately see that mu is inactive for most outputs, while beta1, beta2, epsilon, alpha, gamma are active for most outputs. We also see that beta3 tends to be active for outputs at later times and inactive for outputs at earlier times, as one would expect. Note that beta3 is active for R100: even if this is not necessarily what we would have expected, this is not a problem. This is because emulators make use both of the regression hypersurface and of weakly stationary processes to account for differences between the model output and the regression surface. In particular, we should not expect the regression surface to be able to perfectly capture the model output's behaviour.
 
 As mentioned above, `emulator_plot` can also plot the variance of a given emulator: 
 
@@ -595,7 +593,7 @@ emulator_plot(restricted_ems, plot_type = 'imp', targets = targets,
               params = c('beta1', 'gamma'), cb=T)
 ``
 
-Finally let us set the unshown parameters to be as in `chosen_params` (the parameter set used to define the targets):
+Finally let us set the unshown parameters to be as in `chosen_params` (the parameter set used to define the targets, see Section \@ref(wave0)):
 
 ``{r fig.width = 7, fig.height = 6}
 emulator_plot(restricted_ems, plot_type = 'nimp', targets = targets[c(1,2,3,7,8,9)], 
@@ -938,7 +936,7 @@ vd <- validation_diagnostics(ems_wave2, validation =  new_validation,
                              targets = targets, plt=TRUE)
 ``
 
-The diagnostics look ok now. Let us try to generate new parameter sets using all emulators build so far:
+The diagnostics look ok now. Let us try to generate new parameter sets using all emulators built so far:
   
 ``{r fig.width = 9, fig.height = 9}
 new_new_points <- generate_new_runs(c(ems_wave2, ems_wave1), 180, targets, verbose=TRUE)
