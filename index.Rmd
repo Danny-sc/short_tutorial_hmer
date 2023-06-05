@@ -76,6 +76,8 @@ return(initial_points)
 This workshop offers a short introduction to the main functionality of the 
 [hmer](https://cran.r-project.org/web/packages/hmer/index.html) package, using a simple, deterministic epidemiological model. [hmer](https://cran.r-project.org/web/packages/hmer/index.html) allows you to efficiently implement the Bayes Linear emulation and history matching process, a calibration method that  has been successfully employed in a wide range of fields (e.g. epidemiology, cosmology, climate science, systems biology, geology, energy systems). 
 
+Note that when running the workshop code on your device, you should not expect the hmer visualisation tools to produce the same exact output as the one you can find in the following sections. This is mainly because the maximinLHS function, which we use to define the initial parameter sets on which emulators are trained, does return different Latin Hypercube designs at each call. 
+
 Before starting the tutorial, you will need to run the code contained in the box below: it will load all relevant dependencies and a few helper functions which will be introduced and used later.   
 
 ```{info, title="Code to load relevant libraries and helper functions"}
@@ -772,7 +774,7 @@ Note that the code provided above gives just an example of how one can automate 
 In this section we generate the set of points that will be used to train the second wave of emulators. Through visualisations offered by hmer, we then explore these points and assess how much of the initial input space has been removed by the first wave of emulators.  
 
 
-The function `generate_new_runs` is designed to generate new sets of parameters; its default behaviour is as follows.
+The function `generate_new_design` is designed to generate new sets of parameters; its default behaviour is as follows.
 
 STEP 1. A set of parameter sets is generated using a [Latin Hypercube Design](https://en.wikipedia.org/wiki/Latin_hypercube_sampling), rejecting implausible parameter sets.
 
@@ -784,7 +786,7 @@ Let us generate $180$ new sets of parameters, using the emulators for the time u
 
 ```{r fig.width = 9, fig.height = 9}
 restricted_ems <- ems_wave1[c(1,2,3,4,7,8,9,10)]
-new_points_restricted <- generate_new_runs(restricted_ems, 180, targets, verbose=TRUE)
+new_points_restricted <- generate_new_design(restricted_ems, 180, targets, verbose=TRUE)
 ```
 
 We now plot `new_points_restricted` through `plot_wrap`. Note that we pass `ranges` to `plot_wrap` as well, to ensure that 
@@ -816,7 +818,7 @@ What do you think would happen if we tried generating new parameter sets using a
 We expect that using all emulators (instead of just a subset of them) will make the non-implausible space smaller than before, since more conditions will have to be met.  Let us check if our intuition corresponds to what the plots show:
   
 ``{r, fignewpts, fig.width = 9, fig.height = 9}
-new_points <- generate_new_runs(ems_wave1, 180, targets, verbose = TRUE)
+new_points <- generate_new_design(ems_wave1, 180, targets, verbose = TRUE)
 plot_wrap(new_points, ranges)
 ``
 The answer is yes: points now look slightly less spread than before, i.e. a higher part of the input space has been cut-out.   
@@ -868,7 +870,7 @@ vd <- validation_diagnostics(ems_wave1, validation = validation,
 The diagnostics look good now, so we can use the current emulators to generate new points:
 
 ``{r fig.height = 10, fig.width = 10}
-new_points <- generate_new_runs(ems_wave1, 180, targets, verbose = TRUE)
+new_points <- generate_new_design(ems_wave1, 180, targets, verbose = TRUE)
 ``
 
 ```
@@ -881,7 +883,7 @@ In this section we move to the second wave of emulation. We will start by defini
 
 To perform a second wave of history matching and emulation we follow the same procedure as in the previous sections, with two caveats. We start by forming a dataframe `wave1` using parameters sets in `new_points`, as we did with `wave0`, i.e. we run the model at `new_points` using the function `get_results` and then bind the obtained outputs to `new_points`. Half of `wave1` should be used as the training set for the new emulators, and the other half as the validation set to evaluate the new emulators' performance. 
 
-Now note that parameter sets in `new_points` tend to lie in a small region inside the original input space, since `new_points` contains only non-implausible points, according to the first wave emulators. The first caveat is then that it is preferable to train the new emulators only on the non-implausible region found in wave one. This can be done by setting the argument `check.ranges` to `TRUE` in the function `emulator_from_data`. The second caveat is that emulators from both the first and second wave need to be passed to the `generate_new_runs` function: this is because second wave emulators tend to be rather uncertain outside of the small region of the input space where they were trained.
+Now note that parameter sets in `new_points` tend to lie in a small region inside the original input space, since `new_points` contains only non-implausible points, according to the first wave emulators. The first caveat is then that it is preferable to train the new emulators only on the non-implausible region found in wave one. This can be done by setting the argument `check.ranges` to `TRUE` in the function `emulator_from_data`. The second caveat is that emulators from both the first and second wave need to be passed to the `generate_new_design` function: this is because second wave emulators tend to be rather uncertain outside of the small region of the input space where they were trained.
 
 In the task below, you can have a go at wave 2 of the emulation and history matching process yourself.
 
@@ -939,7 +941,7 @@ vd <- validation_diagnostics(ems_wave2, validation =  new_validation,
 The diagnostics look ok now. Let us try to generate new parameter sets using all emulators built so far:
   
 ``{r fig.width = 9, fig.height = 9}
-new_new_points <- generate_new_runs(c(ems_wave2, ems_wave1), 180, targets, verbose=TRUE)
+new_new_points <- generate_new_design(c(ems_wave2, ems_wave1), 180, targets, verbose=TRUE)
 plot_wrap(new_new_points, ranges)
 ``
 
