@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Short tutorial on the hmer package</title>
+  <meta name="description" content="An introduction to the hmer package" />
+  <meta name="generator" content="bookdown 0.24 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="Short tutorial on the hmer package" />
+  <meta property="og:type" content="book" />
+  
+  
+  <meta property="og:description" content="An introduction to the hmer package" />
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Short tutorial on the hmer package" />
+  
+  <meta name="twitter:description" content="An introduction to the hmer package" />
+  
+
+<meta name="author" content="Danny Scarponi, Andy Iskauskas" />
+
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+
+<link rel="next" href="an-overview-of-history-matching-with-emulation-and-hmer.html"/>
+<script src="libs/header-attrs-2.11/header-attrs.js"></script>
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.4.6/dist/fuse.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.0.1/anchor-sections.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.0.1/anchor-sections.js"></script>
+<script language="javascript"> 
+    function toggle(id) {
+        var ele = document.getElementById("toggleText" + id);
+        var text = document.getElementById("displayText" + id);
+        var buttonText = text.innerHTML.replace("Show: ", "");
+        buttonText = buttonText.replace("Hide: ", "");
+        if(ele.style.display == "block") {
+            ele.style.display = "none";
+            text.innerHTML = "Show: " + buttonText;
+        } else {
+            ele.style.display = "block";
+            text.innerHTML = "Hide: " + buttonText;
+        }
+    } 
+</script>
+
+<script language="javascript">
+    function openCode(evt, codeName, id) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent" + id);
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tablinks" + id);
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+        document.getElementById(codeName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+</script>
+
+<script language="javascript">
+    function hide(id){
+        document.getElementById(id).style.display = "none";
+    }
+</script>
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+
+
+<style type="text/css">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  background-color: #f8f8f8; }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ef2929; } /* Alert */
+code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #c4a000; } /* Attribute */
+code span.bn { color: #0000cf; } /* BaseN */
+code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4e9a06; } /* Char */
+code span.cn { color: #000000; } /* Constant */
+code span.co { color: #8f5902; font-style: italic; } /* Comment */
+code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code span.dt { color: #204a87; } /* DataType */
+code span.dv { color: #0000cf; } /* DecVal */
+code span.er { color: #a40000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #0000cf; } /* Float */
+code span.fu { color: #000000; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code span.ot { color: #8f5902; } /* Other */
+code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code span.sc { color: #000000; } /* SpecialChar */
+code span.ss { color: #4e9a06; } /* SpecialString */
+code span.st { color: #4e9a06; } /* String */
+code span.va { color: #000000; } /* Variable */
+code span.vs { color: #4e9a06; } /* VerbatimString */
+code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li class="chapter" data-level="1" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i><b>1</b> Objectives</a></li>
+<li class="chapter" data-level="2" data-path="an-overview-of-history-matching-with-emulation-and-hmer.html"><a href="an-overview-of-history-matching-with-emulation-and-hmer.html"><i class="fa fa-check"></i><b>2</b> An overview of history matching with emulation and hmer</a>
+<ul>
+<li class="chapter" data-level="2.1" data-path="an-overview-of-history-matching-with-emulation-and-hmer.html"><a href="an-overview-of-history-matching-with-emulation-and-hmer.html#why-do-we-need-history-matching-with-emulation"><i class="fa fa-check"></i><b>2.1</b> Why do we need history matching with emulation?</a></li>
+<li class="chapter" data-level="2.2" data-path="an-overview-of-history-matching-with-emulation-and-hmer.html"><a href="an-overview-of-history-matching-with-emulation-and-hmer.html#history-matching"><i class="fa fa-check"></i><b>2.2</b> History Matching</a></li>
+<li class="chapter" data-level="2.3" data-path="an-overview-of-history-matching-with-emulation-and-hmer.html"><a href="an-overview-of-history-matching-with-emulation-and-hmer.html#emulators"><i class="fa fa-check"></i><b>2.3</b> Emulators</a></li>
+<li class="chapter" data-level="2.4" data-path="an-overview-of-history-matching-with-emulation-and-hmer.html"><a href="an-overview-of-history-matching-with-emulation-and-hmer.html#history-matching-with-emulation-workflow"><i class="fa fa-check"></i><b>2.4</b> History matching with emulation workflow</a></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="intro.html"><a href="intro.html"><i class="fa fa-check"></i><b>3</b> Introduction to the model</a></li>
+<li class="chapter" data-level="4" data-path="wave0.html"><a href="wave0.html"><i class="fa fa-check"></i><b>4</b> ‘wave0’ - parameter ranges, targets and design points</a></li>
+<li class="chapter" data-level="5" data-path="constr.html"><a href="constr.html"><i class="fa fa-check"></i><b>5</b> Emulators</a>
+<ul>
+<li class="chapter" data-level="5.1" data-path="constr.html"><a href="constr.html#training-emulators"><i class="fa fa-check"></i><b>5.1</b> Training emulators</a></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="implausibility.html"><a href="implausibility.html"><i class="fa fa-check"></i><b>6</b> Implausibility</a></li>
+<li class="chapter" data-level="7" data-path="emulator-diagnostics.html"><a href="emulator-diagnostics.html"><i class="fa fa-check"></i><b>7</b> Emulator diagnostics</a></li>
+<li class="chapter" data-level="8" data-path="proposing-new-points.html"><a href="proposing-new-points.html"><i class="fa fa-check"></i><b>8</b> Proposing new points</a></li>
+<li class="chapter" data-level="9" data-path="customise-the-first-wave.html"><a href="customise-the-first-wave.html"><i class="fa fa-check"></i><b>9</b> Customise the first wave</a></li>
+<li class="chapter" data-level="10" data-path="second-wave.html"><a href="second-wave.html"><i class="fa fa-check"></i><b>10</b> Second wave</a></li>
+<li class="chapter" data-level="11" data-path="visual.html"><a href="visual.html"><i class="fa fa-check"></i><b>11</b> Visualisations of non-implausible space by wave</a></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Short tutorial on the hmer package</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="header">
+<h1 class="title">Short tutorial on the hmer package</h1>
+<p class="author"><em>Danny Scarponi, Andy Iskauskas</em></p>
+</div>
+<div id="objectives" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Objectives</h1>
+<p>This workshop offers a short introduction to the main functionality of the
+<a href="https://cran.r-project.org/web/packages/hmer/index.html">hmer</a> package, using a simple, deterministic epidemiological model. <a href="https://cran.r-project.org/web/packages/hmer/index.html">hmer</a> allows you to efficiently implement the Bayes Linear emulation and history matching process, a calibration method that has been successfully employed in a wide range of fields (e.g. epidemiology, cosmology, climate science, systems biology, geology, energy systems).</p>
+<p>Note that when running the workshop code on your device, you should not expect the hmer visualisation tools to produce the same exact output as the one you can find in the following sections. This is mainly because the maximinLHS function, which we use to define the initial parameter sets on which emulators are trained, does return different Latin Hypercube designs at each call.</p>
+<p>Before starting the tutorial, you will need to run the code contained in the box below: it will load all relevant dependencies and a few helper functions which will be introduced and used later.</p>
+<p><infobutton id="displayTextunnamed-chunk-2" onclick="javascript:toggle('unnamed-chunk-2');">Show: Code to load relevant libraries and helper functions</infobutton></p>
+<div id="toggleTextunnamed-chunk-2" style="display: none">
+<div class="panel panel-default">
+<div class="panel-body">
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="index.html#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(hmer)</span>
+<span id="cb1-2"><a href="index.html#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(deSolve)</span>
+<span id="cb1-3"><a href="index.html#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb1-4"><a href="index.html#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(reshape2)</span>
+<span id="cb1-5"><a href="index.html#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)</span>
+<span id="cb1-6"><a href="index.html#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-7"><a href="index.html#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lhs)</span>
+<span id="cb1-8"><a href="index.html#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb1-9"><a href="index.html#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="do">############################# HELPER FUNCTIONS #############################</span></span>
+<span id="cb1-10"><a href="index.html#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># `ode_results` provides us with the solution of the differential equations for a given </span></span>
+<span id="cb1-11"><a href="index.html#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># set of parameters. This function assumes an initial population of </span></span>
+<span id="cb1-12"><a href="index.html#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 900 susceptible individuals, 100 exposed individuals, and no infectious </span></span>
+<span id="cb1-13"><a href="index.html#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># or recovered individuals.</span></span>
+<span id="cb1-14"><a href="index.html#cb1-14" aria-hidden="true" tabindex="-1"></a>ode_results <span class="ot">&lt;-</span> <span class="cf">function</span>(parms, <span class="at">end_time =</span> <span class="dv">365</span><span class="sc">*</span><span class="dv">2</span>) {</span>
+<span id="cb1-15"><a href="index.html#cb1-15" aria-hidden="true" tabindex="-1"></a>  forcer <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="dv">0</span>, parms[<span class="st">&#39;beta1&#39;</span>], <span class="dv">100</span>, parms[<span class="st">&#39;beta2&#39;</span>], <span class="dv">180</span>, parms[<span class="st">&#39;beta2&#39;</span>], <span class="dv">270</span>, parms[<span class="st">&#39;beta3&#39;</span>]), </span>
+<span id="cb1-16"><a href="index.html#cb1-16" aria-hidden="true" tabindex="-1"></a>                  <span class="at">ncol =</span> <span class="dv">2</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-17"><a href="index.html#cb1-17" aria-hidden="true" tabindex="-1"></a>  force_func <span class="ot">=</span> <span class="fu">approxfun</span>(<span class="at">x =</span> forcer[,<span class="dv">1</span>], <span class="at">y =</span> forcer[,<span class="dv">2</span>], <span class="at">method =</span> <span class="st">&quot;linear&quot;</span>, <span class="at">rule =</span> <span class="dv">2</span>)</span>
+<span id="cb1-18"><a href="index.html#cb1-18" aria-hidden="true" tabindex="-1"></a>  des <span class="ot">=</span> <span class="cf">function</span>(time, state, parms) {</span>
+<span id="cb1-19"><a href="index.html#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">with</span>(<span class="fu">as.list</span>(<span class="fu">c</span>(state, parms)), {</span>
+<span id="cb1-20"><a href="index.html#cb1-20" aria-hidden="true" tabindex="-1"></a>      dS <span class="ot">&lt;-</span> b<span class="sc">*</span>(S<span class="sc">+</span>E<span class="sc">+</span>I<span class="sc">+</span>R)<span class="sc">-</span><span class="fu">force_func</span>(time)<span class="sc">*</span>I<span class="sc">*</span>S<span class="sc">/</span>(S<span class="sc">+</span>E<span class="sc">+</span>I<span class="sc">+</span>R) <span class="sc">+</span> omega<span class="sc">*</span>R <span class="sc">-</span> mu<span class="sc">*</span>S</span>
+<span id="cb1-21"><a href="index.html#cb1-21" aria-hidden="true" tabindex="-1"></a>      dE <span class="ot">&lt;-</span> <span class="fu">force_func</span>(time)<span class="sc">*</span>I<span class="sc">*</span>S<span class="sc">/</span>(S<span class="sc">+</span>E<span class="sc">+</span>I<span class="sc">+</span>R) <span class="sc">-</span> epsilon<span class="sc">*</span>E <span class="sc">-</span> mu<span class="sc">*</span>E</span>
+<span id="cb1-22"><a href="index.html#cb1-22" aria-hidden="true" tabindex="-1"></a>      dI <span class="ot">&lt;-</span> epsilon<span class="sc">*</span>E <span class="sc">-</span> alpha<span class="sc">*</span>I <span class="sc">-</span> gamma<span class="sc">*</span>I <span class="sc">-</span> mu<span class="sc">*</span>I</span>
+<span id="cb1-23"><a href="index.html#cb1-23" aria-hidden="true" tabindex="-1"></a>      dR <span class="ot">&lt;-</span> gamma<span class="sc">*</span>I <span class="sc">-</span> omega<span class="sc">*</span>R <span class="sc">-</span> mu<span class="sc">*</span>R</span>
+<span id="cb1-24"><a href="index.html#cb1-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">return</span>(<span class="fu">list</span>(<span class="fu">c</span>(dS, dE, dI, dR)))</span>
+<span id="cb1-25"><a href="index.html#cb1-25" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb1-26"><a href="index.html#cb1-26" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb1-27"><a href="index.html#cb1-27" aria-hidden="true" tabindex="-1"></a>  yini <span class="ot">=</span> <span class="fu">c</span>(<span class="at">S =</span> <span class="dv">900</span>, <span class="at">E =</span> <span class="dv">100</span>, <span class="at">I =</span> <span class="dv">0</span>, <span class="at">R =</span> <span class="dv">0</span>)</span>
+<span id="cb1-28"><a href="index.html#cb1-28" aria-hidden="true" tabindex="-1"></a>  times <span class="ot">=</span> <span class="fu">seq</span>(<span class="dv">0</span>, end_time, <span class="at">by =</span> <span class="dv">1</span>)</span>
+<span id="cb1-29"><a href="index.html#cb1-29" aria-hidden="true" tabindex="-1"></a>  out <span class="ot">=</span> deSolve<span class="sc">::</span><span class="fu">ode</span>(yini, times, des, parms)</span>
+<span id="cb1-30"><a href="index.html#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(out)</span>
+<span id="cb1-31"><a href="index.html#cb1-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-32"><a href="index.html#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co"># `get_results` acts as `ode_results`, but has the additional feature </span></span>
+<span id="cb1-33"><a href="index.html#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co"># of allowing us to decide which outputs and times should be returned. </span></span>
+<span id="cb1-34"><a href="index.html#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co"># For example, to obtain the number of infected and susceptible individuals </span></span>
+<span id="cb1-35"><a href="index.html#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co"># at t=25 and t=50, we would set `times=c(25,50)` and `outputs=c(&#39;I&#39;,&#39;S&#39;)`.</span></span>
+<span id="cb1-36"><a href="index.html#cb1-36" aria-hidden="true" tabindex="-1"></a>get_results <span class="ot">&lt;-</span> <span class="cf">function</span>(params, times, outputs) {</span>
+<span id="cb1-37"><a href="index.html#cb1-37" aria-hidden="true" tabindex="-1"></a>  t_max <span class="ot">&lt;-</span> <span class="fu">max</span>(times)</span>
+<span id="cb1-38"><a href="index.html#cb1-38" aria-hidden="true" tabindex="-1"></a>  all_res <span class="ot">&lt;-</span> <span class="fu">ode_results</span>(params, t_max)</span>
+<span id="cb1-39"><a href="index.html#cb1-39" aria-hidden="true" tabindex="-1"></a>  actual_res <span class="ot">&lt;-</span> all_res[all_res[,<span class="st">&#39;time&#39;</span>] <span class="sc">%in%</span> times, <span class="fu">c</span>(<span class="st">&#39;time&#39;</span>, outputs)]</span>
+<span id="cb1-40"><a href="index.html#cb1-40" aria-hidden="true" tabindex="-1"></a>  shaped <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(actual_res[,outputs])</span>
+<span id="cb1-41"><a href="index.html#cb1-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">setNames</span>(shaped<span class="sc">$</span>value, <span class="fu">paste0</span>(shaped<span class="sc">$</span>Var2, actual_res[,<span class="st">&#39;time&#39;</span>], <span class="at">sep =</span> <span class="st">&quot;&quot;</span>)))</span>
+<span id="cb1-42"><a href="index.html#cb1-42" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-43"><a href="index.html#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="co"># `space_filling_design` generates a space filling design of parameter sets</span></span>
+<span id="cb1-44"><a href="index.html#cb1-44" aria-hidden="true" tabindex="-1"></a>space_filling_design <span class="ot">&lt;-</span> <span class="cf">function</span>(num_points, num_params, ranges){</span>
+<span id="cb1-45"><a href="index.html#cb1-45" aria-hidden="true" tabindex="-1"></a>initial_LHS_training <span class="ot">&lt;-</span> <span class="fu">maximinLHS</span>(num_points<span class="sc">/</span><span class="dv">2</span>, num_params)</span>
+<span id="cb1-46"><a href="index.html#cb1-46" aria-hidden="true" tabindex="-1"></a>initial_LHS_validation <span class="ot">&lt;-</span> <span class="fu">maximinLHS</span>(num_points<span class="sc">/</span><span class="dv">2</span>, num_params)</span>
+<span id="cb1-47"><a href="index.html#cb1-47" aria-hidden="true" tabindex="-1"></a>initial_LHS <span class="ot">&lt;-</span> <span class="fu">rbind</span>(initial_LHS_training, initial_LHS_validation)</span>
+<span id="cb1-48"><a href="index.html#cb1-48" aria-hidden="true" tabindex="-1"></a>initial_points <span class="ot">&lt;-</span> <span class="fu">setNames</span>(<span class="fu">data.frame</span>(<span class="fu">t</span>(<span class="fu">apply</span>(initial_LHS, <span class="dv">1</span>, </span>
+<span id="cb1-49"><a href="index.html#cb1-49" aria-hidden="true" tabindex="-1"></a>                  <span class="cf">function</span>(x) x<span class="sc">*</span><span class="fu">unlist</span>(<span class="fu">lapply</span>(ranges, <span class="cf">function</span>(x) x[<span class="dv">2</span>]<span class="sc">-</span>x[<span class="dv">1</span>])) <span class="sc">+</span> </span>
+<span id="cb1-50"><a href="index.html#cb1-50" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">unlist</span>(<span class="fu">lapply</span>(ranges, <span class="cf">function</span>(x) x[<span class="dv">1</span>]))))), <span class="fu">names</span>(ranges))</span>
+<span id="cb1-51"><a href="index.html#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="fu">return</span>(initial_points)</span>
+<span id="cb1-52"><a href="index.html#cb1-52" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+</div>
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+<a href="an-overview-of-history-matching-with-emulation-and-hmer.html" class="navigation navigation-next navigation-unique" aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": null,
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": null,
+"text": null
+},
+"download": ["_main.pdf"],
+"search": {
+"engine": "fuse",
+"options": null
+},
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    var src = "true";
+    if (src === "" || src === "true") src = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML";
+    if (location.protocol !== "file:")
+      if (/^https?:/.test(src))
+        src = src.replace(/^https?:/, '');
+    script.src = src;
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+</body>
+
+</html>
